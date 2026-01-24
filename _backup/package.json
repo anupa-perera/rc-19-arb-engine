@@ -1,0 +1,20 @@
+{
+  "name": "rc-19-arb-engine",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "elysia": "latest",
+    "ioredis": "latest",
+    "playwright": "latest",
+    "zod": "latest",
+    "openai": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
