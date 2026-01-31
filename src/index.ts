@@ -12,15 +12,32 @@ const activeSessions = new Map<string, Watchtower>();
 import { fetchRaceOdds } from "./services/discovery/scraper";
 
 const app = new Elysia()
-  .use(cors({
-    origin: true, // Reflect request origin (allows file:// and localhost)
-    allowedHeaders: ['Content-Type']
-  }))
+  .use(
+    cors({
+      origin: true, // Reflect request origin (allows file:// and localhost)
+      allowedHeaders: ["Content-Type"],
+    })
+  )
   .get("/menu", async () => {
     // Phase 4: Endpoint GET /menu
     console.log("[API] GET /menu");
     const menu = await getOrRefreshMenu();
-    return menu;
+    const now = new Date();
+
+    // Attach original 1-based race numbers (if not already present) and filter for upcoming races
+    return menu
+      .map((meet) => {
+        const racesWithNumbers = meet.races.map((race, index) => ({
+          ...race,
+          number: race.number || index + 1, // Use scraped number or fallback to 1-based index
+        }));
+
+        return {
+          ...meet,
+          races: racesWithNumbers.filter((race) => new Date(race.time) > now),
+        };
+      })
+      .filter((meet) => meet.races.length > 0); // Only return meets with upcoming races
   })
 
   .get("/odds", async ({ query, set }) => {
@@ -40,7 +57,7 @@ const app = new Elysia()
     }
 
     const menu = await getOrRefreshMenu();
-    const meet = menu.find(m => m.id === meetId);
+    const meet = menu.find((m) => m.id === meetId);
 
     if (!meet) {
       set.status = 404;
@@ -83,7 +100,7 @@ const app = new Elysia()
 
     // Lookup URL
     const menu = await getOrRefreshMenu();
-    const meet = menu.find(m => m.id === meetId);
+    const meet = menu.find((m) => m.id === meetId);
     if (!meet) {
       set.status = 404;
       return { error: "Meet not found" };
@@ -122,7 +139,7 @@ const app = new Elysia()
     },
     close(ws) {
       console.log("[API] [WS] Client disconnected");
-    }
+    },
   })
   .listen(3000);
 
@@ -148,6 +165,4 @@ subscriber.on("message", (channel, message) => {
 // Note: In production you might want dynamic subscription based on active meets
 subscriber.psubscribe("rc19:live:*");
 
-console.log(
-  `[CORE] RC-19 Arb Engine is running at ${app.server?.hostname}:${app.server?.port}`
-);
+console.log(`[CORE] RC-19 Arb Engine is running at ${app.server?.hostname}:${app.server?.port}`);

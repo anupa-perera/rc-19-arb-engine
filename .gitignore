@@ -50,3 +50,4 @@ tsconfig.tsbuildinfo
 **/*.log
 package-lock.json
 **/*.bun
+debug-dashboard.html
