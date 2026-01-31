@@ -6,12 +6,15 @@ const IsoDateString = z.string().datetime({ message: "Invalid ISO 8601 date stri
 
 // --- Meet Schemas ---
 
-export const RaceTimeSchema = IsoDateString;
+export const RaceInfoSchema = z.object({
+    time: IsoDateString,
+    url: z.string().url("Invalid race URL"),
+});
 
 export const MeetSchema = z.object({
     id: z.string().min(1, "Meet ID is required"),
     venue: z.string().min(1, "Venue name is required"),
-    raceTimes: z.array(RaceTimeSchema).nonempty("A meet must have at least one race"),
+    races: z.array(RaceInfoSchema).nonempty("A meet must have at least one race"),
     // Optional: country code, date, etc. if needed later
 });
 
