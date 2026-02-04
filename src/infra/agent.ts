@@ -3,9 +3,7 @@ const SITE_URL = "http://localhost:3000";
 const SITE_NAME = "RC-19 Arb Engine";
 
 if (!API_KEY) {
-  console.warn(
-    "[INFRA] [AGENT] OPENROUTER_API_KEY is missing. Agent features will be disabled.",
-  );
+  console.warn("[INFRA] [AGENT] OPENROUTER_API_KEY is missing. Agent features will be disabled.");
 }
 
 // Define minimal types to match what's needed
@@ -42,27 +40,22 @@ class OpenRouterClient {
 
   public chat = {
     completions: {
-      create: async (
-        options: ChatCompletionOptions,
-      ): Promise<ChatCompletionResponse> => {
+      create: async (options: ChatCompletionOptions): Promise<ChatCompletionResponse> => {
         if (!this.apiKey) {
           throw new Error("OpenRouter API Key is missing");
         }
 
         try {
-          const response = await fetch(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-              method: "POST",
-              headers: this.headers,
-              body: JSON.stringify(options),
-            },
-          );
+          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: this.headers,
+            body: JSON.stringify(options),
+          });
 
           if (!response.ok) {
             const errorText = await response.text();
             throw new Error(
-              `OpenRouter API Error: ${response.status} ${response.statusText} - ${errorText}`,
+              `OpenRouter API Error: ${response.status} ${response.statusText} - ${errorText}`
             );
           }
 

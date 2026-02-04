@@ -5,7 +5,7 @@ import path from "path";
 /**
  * Helper to spawn a node worker and capture its JSON output
  */
-async function runWorker(scriptName: string, args: string[] = []): Promise<any> {
+async function runWorker<T>(scriptName: string, args: string[] = []): Promise<T | null> {
   const workerPath = path.resolve(__dirname, scriptName);
   console.log(`[SERVICE] [DISCOVERY] Spawning worker: ${scriptName} ${args.join(" ")}`);
 
@@ -13,7 +13,6 @@ async function runWorker(scriptName: string, args: string[] = []): Promise<any> 
     const worker = spawn("node", [workerPath, ...args]);
 
     let stdoutData = "";
-    let stderrData = "";
 
     worker.stdout.on("data", (data) => {
       stdoutData += data.toString();
@@ -21,7 +20,6 @@ async function runWorker(scriptName: string, args: string[] = []): Promise<any> 
 
     worker.stderr.on("data", (data) => {
       const msg = data.toString();
-      stderrData += msg;
       process.stderr.write(msg);
     });
 
@@ -38,6 +36,10 @@ async function runWorker(scriptName: string, args: string[] = []): Promise<any> 
         resolve(result);
       } catch (err) {
         console.error(`[SERVICE] [DISCOVERY] Failed to parse output from ${scriptName}:`, err);
+        console.error(
+          `[SERVICE] [DISCOVERY] Raw stdout (first 500 chars):`,
+          stdoutData.trim().substring(0, 500)
+        );
         resolve(null);
       }
     });
@@ -52,17 +54,24 @@ async function runWorker(scriptName: string, args: string[] = []): Promise<any> 
 export async function fetchDailyMenu(): Promise<Meet[]> {
   console.log("[SERVICE] [DISCOVERY] Fetching daily menu from At The Races (ATR)...");
 
-  // Run only ATR worker
-  const atrMeets = await runWorker("scraper-atr-worker.js");
+  // Run both ATR horse racing and greyhound workers in parallel
+  const [horseMeets, greyhoundMeets] = await Promise.all([
+    runWorker<Meet[]>("scraper-atr-worker.js"),
+    runWorker<Meet[]>("scraper-atr-greyhound-worker.js"),
+  ]);
 
   const combined: Meet[] = [];
 
-  if (atrMeets && Array.isArray(atrMeets)) {
-    combined.push(...atrMeets);
+  if (horseMeets && Array.isArray(horseMeets)) {
+    combined.push(...horseMeets);
+  }
+
+  if (greyhoundMeets && Array.isArray(greyhoundMeets)) {
+    combined.push(...greyhoundMeets);
   }
 
   if (combined.length === 0) {
-    console.error("[SERVICE] [DISCOVERY] ATR worker failed to return data. Using fallback.");
+    console.error("[SERVICE] [DISCOVERY] Both ATR workers failed to return data.");
     return [];
   }
 
@@ -70,18 +79,19 @@ export async function fetchDailyMenu(): Promise<Meet[]> {
   return combined;
 }
 
-export async function fetchRaceOdds(url: string): Promise<any> {
+export async function fetchRaceOdds(url: string): Promise<unknown> {
   console.log(`[SERVICE] [DISCOVERY] Fetching odds for ${url}...`);
 
-  // Only support ATR
-  // We could check if url includes 'attheraces.com' but since we only discover ATR races now,
-  // we can assume it's ATR or just strict check.
   if (!url.includes("attheraces.com")) {
     console.error("[SERVICE] [DISCOVERY] URL is not from At The Races. Skipping.");
     return { error: "Unsupported URL source" };
   }
 
-  const scriptName = "scraper-atr-odds-worker.js";
+  // Route to correct worker based on subdomain
+  const scriptName = url.includes("greyhounds.attheraces.com")
+    ? "scraper-atr-greyhound-odds-worker.js"
+    : "scraper-atr-odds-worker.js";
+
   const result = await runWorker(scriptName, [url]);
 
   if (!result) {

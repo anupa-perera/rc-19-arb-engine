@@ -12,6 +12,8 @@ export const RaceInfoSchema = z.object({
   number: z.number().int().positive().optional(), // Original 1-based index
 });
 
+export type RaceInfo = z.infer<typeof RaceInfoSchema>;
+
 export const MeetSchema = z.object({
   id: z.string().min(1, "Meet ID is required"),
   venue: z.string().min(1, "Venue name is required"),
@@ -52,3 +54,33 @@ export const LiveUpdateSchema = z.object({
 });
 
 export type LiveUpdate = z.infer<typeof LiveUpdateSchema>;
+
+// --- WebSocket Schemas ---
+
+export const WSSubscriptionSchema = z.object({
+  action: z.enum(["subscribe"]),
+  meetId: z.string().min(1),
+});
+
+export type WSSubscription = z.infer<typeof WSSubscriptionSchema>;
+
+// --- Scraper Result Schemas ---
+
+export const RunnerOddsSchema = z.object({
+  name: z.string(),
+  prices: z.array(
+    z.object({
+      bookie: z.string(),
+      price: z.string(), // Scrapers often return string price, converted to number later
+    })
+  ),
+});
+
+export const RaceOddsResultSchema = z.object({
+  runners: z.array(RunnerOddsSchema),
+  bookies: z.array(z.string()),
+  url: z.string(),
+  timestamp: z.number(),
+});
+
+export type RaceOddsResult = z.infer<typeof RaceOddsResultSchema>;

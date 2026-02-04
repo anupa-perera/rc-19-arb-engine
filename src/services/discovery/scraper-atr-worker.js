@@ -80,6 +80,9 @@ async function fetchAtrMenu() {
             const processedUrls = new Set();
             let count = 0;
 
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Midnight today
+
             links.forEach(link => {
                 const href = link.getAttribute('href');
                 if (!href || processedUrls.has(href)) return;
@@ -94,15 +97,6 @@ async function fetchAtrMenu() {
                     const timeStr = match[3];
                     const venueName = venueSlug.replace(/-/g, ' ');
 
-                    const key = `${venueSlug}-${dateStr}`;
-                    if (!venueMap[key]) {
-                        venueMap[key] = {
-                            id: `atr-${key}`,
-                            venue: venueName,
-                            races: []
-                        };
-                    }
-
                     // Format time to ISO UTC
                     const hours = timeStr.substring(0, 2);
                     const mins = timeStr.substring(2, 4);
@@ -111,6 +105,22 @@ async function fetchAtrMenu() {
                     const dateObj = new Date(`${dateClean} ${hours}:${mins} UTC`);
 
                     if (!isNaN(dateObj.getTime())) {
+                        const raceDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+
+                        // Strict Filter: Skip if race date is before today
+                        if (raceDate < today) {
+                            return;
+                        }
+
+                        const key = `${venueSlug}-${dateStr}`;
+                        if (!venueMap[key]) {
+                            venueMap[key] = {
+                                id: `atr-${key}`,
+                                venue: venueName,
+                                races: []
+                            };
+                        }
+
                         let raceNumber = null;
 
                         // Attempt to extract "Race X" from the link text or title attribute
@@ -133,6 +143,13 @@ async function fetchAtrMenu() {
 
             return { venues: Object.values(venueMap), count };
         });
+
+        if (result.count === 0) {
+            console.error(`[ATR-WORKER] Zero races found. Capturing debug snapshot...`);
+            await page.screenshot({ path: "debug_atr_zero.png", fullPage: true });
+            const fs = require('fs');
+            fs.writeFileSync("debug_atr_zero.html", await page.content());
+        }
 
         console.error(`[ATR-WORKER] Extracted ${result.count} races across ${result.venues.length} venues.`);
 

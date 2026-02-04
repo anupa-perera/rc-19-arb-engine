@@ -33,22 +33,18 @@ export class Watchtower {
           try {
             const payload = JSON.parse(line);
 
-            // Publish to Redis
-            // Channel: rc19:live:{meetId}
-            // Clients subscribed to this meet will receive updates.
-            // We might want to wrap it in a standard envelope.
             const event = {
               type: "ODDS_UPDATE",
               meetId: this.meetId,
-              data: payload,
+              payload: payload, // Changed from 'data' to 'payload' to match LiveUpdateSchema
             };
 
             const channel = `rc19:live:${this.meetId}`;
             await redis.publish(channel, JSON.stringify(event));
-            console.log(`[SERVICE] [WATCHTOWER] Published update for ${this.meetId}`);
-          } catch (e) {
+            // console.debug(`[SERVICE] [WATCHTOWER] Broadcast update for ${this.meetId}`);
+          } catch {
             // Likely a debug log from the worker that isn't JSON
-            console.log(`[WATCHTOWER] Worker Log: ${line}`);
+            console.log(`[WATCHTOWER] [WORKER LOG] ${line.trim()}`);
           }
         }
       });
@@ -56,14 +52,14 @@ export class Watchtower {
 
     if (this.worker.stderr) {
       this.worker.stderr.on("data", (data) => {
-        process.stderr.write(`[WATCHTOWER] [WORKER] ${data.toString()}`);
+        process.stderr.write(`[WATCHTOWER] [WORKER ERROR] ${data.toString()}`);
       });
     }
 
     this.worker.on("close", (code) => {
-      console.log(`[SERVICE] [WATCHTOWER] Worker exited with code ${code}`);
+      console.log(`[SERVICE] [WATCHTOWER] Worker for ${this.meetId} exited with code ${code}`);
       this.isActive = false;
-      // Optionally restart if it crashed but wasn't stopped manually
+      this.worker = null;
     });
   }
 
