@@ -84,12 +84,21 @@ async function fetchAtrOdds() {
         }
 
         const runners = await page.evaluate(({ bookies, runnerMap }) => {
-            // 3. Extract Odds from the grid rows
             const oddsRows = Array.from(document.querySelectorAll('.odds-grid__row--horse'));
+
             return oddsRows.map(row => {
                 const idAttr = row.getAttribute('id'); // e.g. "row-3743935"
                 const id = idAttr ? idAttr.replace('row-', '') : null;
-                const name = id ? (runnerMap[id] || "Unknown") : "Unknown";
+
+                let name = id ? (runnerMap[id] || "Unknown") : "Unknown";
+
+                // Fallback: Try to find name in the row text if mapping failed
+                if (name === "Unknown") {
+                    const nameEl = row.querySelector('.odds-grid__runner-name, .runner-name, .name');
+                    if (nameEl) {
+                        name = nameEl.innerText.trim();
+                    }
+                }
 
                 const priceCells = Array.from(row.querySelectorAll('.odds-grid__cell--odds'));
                 const prices = priceCells.map((cell, index) => {
@@ -111,7 +120,10 @@ async function fetchAtrOdds() {
                 }).filter(p => p.price !== "-" && p.price !== "odds" && p.price !== "SP");
 
                 return { name, prices };
-            }).filter(r => r.name !== "Unknown" && r.prices.length > 0);
+            }).filter(r => {
+                // Relaxed filter: If we have prices, keep it even if name is Unknown
+                return r.prices.length > 0;
+            });
         }, { bookies: data.bookies, runnerMap: data.runnerMap });
 
         console.log(JSON.stringify({

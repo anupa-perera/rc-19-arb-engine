@@ -54,20 +54,27 @@ async function runWorker<T>(scriptName: string, args: string[] = []): Promise<T 
 export async function fetchDailyMenu(): Promise<Meet[]> {
   console.log("[SERVICE] [DISCOVERY] Fetching daily menu from At The Races (ATR)...");
 
-  // Run both ATR horse racing and greyhound workers in parallel
-  const [horseMeets, greyhoundMeets] = await Promise.all([
-    runWorker<Meet[]>("scraper-atr-worker.js"),
-    runWorker<Meet[]>("scraper-atr-greyhound-worker.js"),
-  ]);
+  // Run ATR horse racing and greyhound workers in parallel (Today + Tomorrow)
+  const [horseMeetsToday, horseMeetsTomorrow, greyhoundMeetsToday, greyhoundMeetsTomorrow] =
+    await Promise.all([
+      runWorker<Meet[]>("scraper-atr-worker.js", ["https://www.attheraces.com/racecards"]),
+      runWorker<Meet[]>("scraper-atr-worker.js", ["https://www.attheraces.com/racecards/tomorrow"]),
+      runWorker<Meet[]>("scraper-atr-greyhound-worker.js", [
+        "https://greyhounds.attheraces.com/racecards",
+      ]),
+      runWorker<Meet[]>("scraper-atr-greyhound-worker.js", [
+        "https://greyhounds.attheraces.com/racecards/tomorrow",
+      ]),
+    ]);
 
   const combined: Meet[] = [];
 
-  if (horseMeets && Array.isArray(horseMeets)) {
-    combined.push(...horseMeets);
-  }
+  const lists = [horseMeetsToday, horseMeetsTomorrow, greyhoundMeetsToday, greyhoundMeetsTomorrow];
 
-  if (greyhoundMeets && Array.isArray(greyhoundMeets)) {
-    combined.push(...greyhoundMeets);
+  for (const list of lists) {
+    if (list && Array.isArray(list)) {
+      combined.push(...list);
+    }
   }
 
   if (combined.length === 0) {

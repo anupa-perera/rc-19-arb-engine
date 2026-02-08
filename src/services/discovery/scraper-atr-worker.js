@@ -3,7 +3,7 @@ const stealth = require("puppeteer-extra-plugin-stealth")();
 
 chromium.use(stealth);
 
-const ATR_MENU_URL = "https://www.attheraces.com/racecards";
+const ATR_MENU_URL = process.argv[2] || "https://www.attheraces.com/racecards";
 
 // Helper: Random integer between min and max
 const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -144,12 +144,6 @@ async function fetchAtrMenu() {
             return { venues: Object.values(venueMap), count };
         });
 
-        if (result.count === 0) {
-            console.error(`[ATR-WORKER] Zero races found. Capturing debug snapshot...`);
-            await page.screenshot({ path: "debug_atr_zero.png", fullPage: true });
-            const fs = require('fs');
-            fs.writeFileSync("debug_atr_zero.html", await page.content());
-        }
 
         console.error(`[ATR-WORKER] Extracted ${result.count} races across ${result.venues.length} venues.`);
 

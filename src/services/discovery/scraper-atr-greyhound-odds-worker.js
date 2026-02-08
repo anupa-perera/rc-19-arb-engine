@@ -45,16 +45,6 @@ async function fetchGreyhoundOdds(url) {
         try {
             await page.waitForSelector(".odds-grid", { timeout: 10000 });
         } catch (e) {
-            console.error("[GREYHOUND-ODDS] Odds grid not found. Capturing failure snapshot...");
-            await page.screenshot({ path: "debug_odds_failure.png", fullPage: true });
-
-            const html = await page.content();
-            const fs = require('fs');
-            fs.writeFileSync("debug_odds_failure.html", html);
-
-            console.error("[GREYHOUND-ODDS] Saved debug_odds_failure.png and .html");
-            console.log(JSON.stringify({ error: "Odds grid not found" }));
-            process.exit(0);
         }
 
         // Greyhound ATR uses a coordinate-based grid. 
