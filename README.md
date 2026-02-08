@@ -1,44 +1,136 @@
 # RC-19 Arb Engine
 
-Real-time arbitrage detection engine for horse racing markets.
+Real-time arbitrage detection and odds aggregation engine for horse racing markets.
 
-## Project Goals
-- **Real-time Odds Aggregation**: Scraping live odds from "At The Races" (ATR) aggregator to get multi-bookmaker data in one place.
-- **Future Race Filtering**: Strict focus on upcoming and future races where live odds are active.
-- **Arbitrage Detection**: Real-time calculation of implied probabilities across bookmakers to identify >100% payout opportunities.
-- **Smart Notifications**: Intelligent agent-based filtering and alerts via OpenRouter (LLM) to notify the user of high-value opportunities.
+## 🚀 Features
 
-## Tech Stack
-- **Runtime**: [Bun](https://bun.sh/)
-- **Web Framework**: [ElysiaJS](https://elysiajs.com/)
-- **Scraping**: [Playwright](https://playwright.dev/) with Stealth Plugin (Node.js workers)
-- **Database/Cache**: Redis (Pub/Sub for real-time updates)
-- **AI Agent**: OpenRouter API for intelligent analysis
+- **Live Odds Aggregation**: Scrapes real-time odds from "At The Races" (ATR) and other sources.
+- **Arbitrage Detection**: Calculates implied probabilities to identify >100% payout opportunities across bookmakers.
+- **Real-time Updates**: Pushes live odds and market movements to the frontend via WebSockets.
+- **Smart Filtering**: Focuses on upcoming races to minimize resource usage.
+- **Resilient Architecture**: Decoupled scraping workers (Playwright) managed by a central discovery service.
 
-## Project Structure
-- `src/index.ts`: API entry point and WebSocket server.
-- `src/services/discovery`: Racecard discovery and aggregated odds scraping.
-- `src/services/watchtower`: Real-time monitoring of active racecards.
-- `src/services/calculation`: Logic for detecting arbitrage opportunities.
-- `src/infra`: Infrastructure setup (Redis, Agent client).
+## 🛠️ Tech Stack
 
-## Getting Started
+- **Runtime**: [Bun](https://bun.sh/) (Fast JavaScript runtime)
+- **Framework**: [ElysiaJS](https://elysiajs.com/) (High-performance web framework)
+- **Scraping**: [Playwright](https://playwright.dev/) with `puppeteer-extra-plugin-stealth`
+- **Database/Cache**: Redis (Pub/Sub for real-time data distribution)
+- **Process Management**: Node.js child processes for isolated scraping workers
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    Client[Frontend / Client] <-->|WebSocket /live| API[Elysia API Server]
+    API <-->|HTTP /menu, /odds| Client
+    
+    subgraph Services
+        API -->|Spawns| Discovery[Discovery Service]
+        Discovery -->|Spawns| Worker1[Scraper Worker 1]
+        Discovery -->|Spawns| Worker2[Scraper Worker 2]
+        Watchtower[Watchtower Service] -->|Polls| Redis
+    end
+    
+    subgraph Data
+        Worker1 -->|Writes| Redis[(Redis Cache & Pub/Sub)]
+        Worker2 -->|Writes| Redis
+        Redis -->|Events| API
+    end
+```
+
+## 🔌 API Endpoints
+
+### HTTP API
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/` | Service status and version info. |
+| `GET` | `/menu?refresh=true` | Fetch the list of upcoming races. Use `refresh=true` to force a scrape. |
+| `GET` | `/odds?meetId={id}&race={num}` | Get odds for a specific race (triggers scraper if not cached). |
+| `POST` | `/monitor/{meetId}?race={num}` | Start a persistent monitoring session for a race. |
+
+### WebSocket API
+
+**URL**: `wss://your-domain.com/live` (or `ws://localhost:3000/live` locally)
+
+**Protocol**:
+1.  **Connect** to the WebSocket URL.
+2.  **Subscribe** to a race/meet updates:
+    ```json
+    { "action": "subscribe", "meetId": "12345" }
+    ```
+3.  **Receive Updates**: The server pushes JSON messages when odds change.
+
+## ⚙️ Installation & Setup
 
 ### Prerequisites
-- [Bun](https://bun.sh/) installed.
-- Redis server running (e.g., Memurai on Windows).
-- OpenRouter API Key in `.env`.
+- [Bun](https://bun.sh/) (v1.0+)
+- [Redis](https://redis.io/) (Running locally or hosted)
+- Node.js (v18+) (Required for Playwright workers)
 
-### Installation
+### 1. Clone & Install
 ```bash
+git clone https://github.com/anupa-perera/rc-19-arb-engine.git
+cd rc-19-arb-engine
 bun install
 bunx playwright install chromium
 ```
 
-### Development
-```bash
-bun run dev
+### 2. Configure Environment
+Create a `.env` file in the root directory:
+```env
+# Server Port
+PORT=3000
+
+# Redis Connection
+REDIS_URL=redis://localhost:6379 
+# OR for managed Redis: rediss://user:pass@host:port
+
+# Scraper Configuration
+SCRAPER_HEADLESS=true  # Set to false to see the browser window
 ```
 
-## Roadmap
-See [agent.md](file:///f:/sideProjects/rc-19-arb-engine/agent.md) for the detailed implementation roadmap.
+### 3. Run Locally
+```bash
+# Development mode (hot reload)
+bun run dev
+
+# Production mode
+bun run start
+```
+
+## 🚀 Deployment (EC2 / VPS)
+
+### 1. System Requirements
+- Ubuntu 20.04+ (Recommended)
+- Node.js (v20+) & Bun installed
+- Redis server configured
+
+### 2. Process Management (PM2)
+Use PM2 to keep the app running in the background:
+```bash
+npm install -g pm2
+pm2 start "bun run src/index.ts" --name rc-19-arb-engine
+pm2 save
+pm2 startup
+```
+
+### 3. Nginx Reverse Proxy (SSL)
+Configure Nginx to proxy traffic to port 3000 and handle WebSockets upgrades.
+
+**Example Nginx Config:**
+```nginx
+server {
+    server_name your-domain.com;
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+    }
+}
+```
+
+Secure with Certbot: `sudo certbot --nginx`
