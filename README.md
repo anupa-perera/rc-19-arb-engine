@@ -99,38 +99,3 @@ bun run dev
 # Production mode
 bun run start
 ```
-
-## 🚀 Deployment (EC2 / VPS)
-
-### 1. System Requirements
-- Ubuntu 20.04+ (Recommended)
-- Node.js (v20+) & Bun installed
-- Redis server configured
-
-### 2. Process Management (PM2)
-Use PM2 to keep the app running in the background:
-```bash
-npm install -g pm2
-pm2 start "bun run src/index.ts" --name rc-19-arb-engine
-pm2 save
-pm2 startup
-```
-
-### 3. Nginx Reverse Proxy (SSL)
-Configure Nginx to proxy traffic to port 3000 and handle WebSockets upgrades.
-
-**Example Nginx Config:**
-```nginx
-server {
-    server_name your-domain.com;
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-    }
-}
-```
-
-Secure with Certbot: `sudo certbot --nginx`
