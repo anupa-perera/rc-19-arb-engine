@@ -17,6 +17,12 @@ const app = new Elysia()
       allowedHeaders: ["Content-Type"],
     })
   )
+  .get("/", () => ({
+    status: "online",
+    service: "RC-19 Arb Engine",
+    endpoints: ["/menu", "/odds", "/live"],
+    timestamp: new Date().toISOString(),
+  }))
   .get("/menu", async ({ query }) => {
     const { refresh } = query;
     console.log(`[API] GET /menu (Refresh: ${refresh})`);
