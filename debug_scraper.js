@@ -4,7 +4,7 @@ const stealth = require("puppeteer-extra-plugin-stealth")();
 chromium.use(stealth);
 
 async function runDebug() {
-    const targetUrl = "https://www.attheraces.com/racecards"; // Default to menu, or can accept arg
+    const targetUrl = process.argv[2] || "https://www.attheraces.com/racecards";
 
     console.log(`[DEBUG] Launching browser for: ${targetUrl}`);
 
