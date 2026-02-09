@@ -6,10 +6,25 @@ chromium.use(stealth);
 async function runDebug() {
     const targetUrl = process.argv[2] || "https://www.attheraces.com/racecards";
 
+    require("dotenv").config(); // Load .env file
+
+    // Proxy Configuration
+    const proxyConfig = process.env.PROXY_HOST ? {
+        server: `http://${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`,
+        username: process.env.PROXY_USERNAME,
+        password: process.env.PROXY_PASSWORD
+    } : null;
+
     console.log(`[DEBUG] Launching browser for: ${targetUrl}`);
+    if (proxyConfig) {
+        console.log(`[DEBUG] Using Proxy: ${proxyConfig.server}`);
+    } else {
+        console.log(`[DEBUG] No Proxy configured (Direct connection)`);
+    }
 
     const browser = await chromium.launch({
-        headless: true, // Match production setting
+        headless: true,
+        proxy: proxyConfig, // Apply proxy here
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -21,19 +36,10 @@ async function runDebug() {
         const page = await browser.newPage();
 
         // Set a realistic user agent and headers to bypass 406
+        // Simplify: Trust the Stealth plugin but enforce a standard Desktop UA
         await page.setExtraHTTPHeaders({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"'
         });
 
         console.log("[DEBUG] Navigating...");
