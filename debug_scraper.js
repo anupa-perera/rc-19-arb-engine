@@ -1,0 +1,54 @@
+const { chromium } = require("playwright-extra");
+const stealth = require("puppeteer-extra-plugin-stealth")();
+
+chromium.use(stealth);
+
+async function runDebug() {
+    const targetUrl = "https://www.attheraces.com/racecards"; // Default to menu, or can accept arg
+
+    console.log(`[DEBUG] Launching browser for: ${targetUrl}`);
+
+    const browser = await chromium.launch({
+        headless: true, // Match production setting
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-web-security",
+        ]
+    });
+
+    try {
+        const page = await browser.newPage();
+
+        // Set a realistic user agent just in case
+        await page.setExtraHTTPHeaders({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+        });
+
+        console.log("[DEBUG] Navigating...");
+        await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+        console.log("[DEBUG] Waiting for extra 5s...");
+        await page.waitForTimeout(5000);
+
+        const title = await page.title();
+        console.log(`[DEBUG] Page Title: ${title}`);
+
+        console.log("[DEBUG] Taking screenshot...");
+        await page.screenshot({ path: "debug_screenshot.png", fullPage: true });
+
+        console.log("[DEBUG] Saving HTML...");
+        const fs = require('fs');
+        fs.writeFileSync("debug_page.html", await page.content());
+
+        console.log("[DEBUG] Done! Check debug_screenshot.png and debug_page.html");
+
+    } catch (e) {
+        console.error("[DEBUG] Error:", e);
+    } finally {
+        await browser.close();
+    }
+}
+
+runDebug();
