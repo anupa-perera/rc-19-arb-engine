@@ -27,7 +27,17 @@ async function runDebug() {
         });
 
         console.log("[DEBUG] Navigating...");
-        await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+        const response = await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+        console.log(`[DEBUG] HTTP Status: ${response?.status()}`);
+        try {
+            const content = await page.content();
+            console.log(`[DEBUG] Content Length: ${content.length}`);
+        } catch (e) {
+            console.log(`[DEBUG] Could not get content length: ${e.message}`);
+        }
+
+        console.log("[DEBUG] Waiting for extra 5s...");
 
         console.log("[DEBUG] Waiting for extra 5s...");
         await page.waitForTimeout(5000);
