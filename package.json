@@ -13,6 +13,7 @@
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/stream": "^1.1.0",
+    "dotenv": "^17.2.4",
     "elysia": "latest",
     "ioredis": "^5.9.2",
     "playwright": "^1.58.0",

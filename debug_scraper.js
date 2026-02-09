@@ -42,7 +42,18 @@ async function runDebug() {
             'Accept-Language': 'en-US,en;q=0.9',
         });
 
-        console.log("[DEBUG] Navigating...");
+        console.log("[DEBUG] Verifying Proxy IP...");
+        try {
+            const ipPage = await browser.newPage();
+            await ipPage.goto("https://api.ipify.org?format=json");
+            const content = await ipPage.content();
+            console.log(`[DEBUG] Current IP Info: ${await ipPage.innerText('body')}`);
+            await ipPage.close();
+        } catch (e) {
+            console.log(`[DEBUG] IP Check failed: ${e.message}`);
+        }
+
+        console.log("[DEBUG] Navigating to target...");
         const response = await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
 
         console.log(`[DEBUG] HTTP Status: ${response?.status()}`);

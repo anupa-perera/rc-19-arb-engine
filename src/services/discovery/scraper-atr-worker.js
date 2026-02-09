@@ -18,13 +18,21 @@ async function fetchAtrMenu() {
     const width = 1920 + randomInt(-50, 50);
     const height = 1080 + randomInt(-50, 50);
 
+    require("dotenv").config();
     const isHeadless = process.env.SCRAPER_HEADLESS !== 'false';
-    const proxyUrl = process.env.SCRAPER_PROXY;
+
+    // Proxy Configuration
+    const proxyConfig = process.env.PROXY_HOST ? {
+        server: `http://${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`,
+        username: process.env.PROXY_USERNAME,
+        password: process.env.PROXY_PASSWORD
+    } : null;
 
     console.error(`[ATR-WORKER] Launching browser (Headless: ${isHeadless})...`);
 
     const launchOptions = {
         headless: isHeadless,
+        proxy: proxyConfig,
         args: [
             '--disable-blink-features=AutomationControlled',
             '--disable-gpu',
@@ -36,10 +44,6 @@ async function fetchAtrMenu() {
             `--window-size=${width},${height}`
         ]
     };
-
-    if (proxyUrl) {
-        launchOptions.proxy = { server: proxyUrl };
-    }
 
     const browser = await chromium.launch(launchOptions);
     const context = await browser.newContext({
