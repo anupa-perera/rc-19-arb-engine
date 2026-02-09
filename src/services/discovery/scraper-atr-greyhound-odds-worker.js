@@ -8,21 +8,12 @@ async function fetchGreyhoundOdds(url) {
     const width = 1920 + Math.floor(Math.random() * 100);
     const height = 1080 + Math.floor(Math.random() * 100);
 
-    require("dotenv").config();
     const isHeadless = process.env.SCRAPER_HEADLESS !== "false";
-
-    // Proxy Configuration
-    const proxyConfig = process.env.PROXY_HOST ? {
-        server: `http://${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`,
-        username: process.env.PROXY_USERNAME,
-        password: process.env.PROXY_PASSWORD
-    } : null;
 
     // console.error(`[GREYHOUND-ODDS] Launching for ${url} (Headless: ${isHeadless})...`);
 
     const launchOptions = {
         headless: isHeadless,
-        proxy: proxyConfig,
         args: [
             "--disable-blink-features=AutomationControlled",
             "--disable-gpu",

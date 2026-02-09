@@ -10,24 +10,12 @@ async function fetchAtrOdds() {
         process.exit(1);
     }
 
-    require("dotenv").config();
     const isHeadless = process.env.SCRAPER_HEADLESS !== 'false';
 
-    // Proxy Configuration
-    const proxyConfig = process.env.PROXY_HOST ? {
-        server: `http://${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`,
-        username: process.env.PROXY_USERNAME,
-        password: process.env.PROXY_PASSWORD
-    } : null;
-
     console.error(`[ATR-ODDS] Launching for ${targetUrl} (Headless: ${isHeadless})...`);
-    if (proxyConfig) {
-        console.error(`[ATR-ODDS] Using Proxy: ${proxyConfig.server}`);
-    }
 
     const launchOptions = {
         headless: isHeadless,
-        proxy: proxyConfig,
         args: [
             '--disable-blink-features=AutomationControlled',
             '--disable-gpu',
